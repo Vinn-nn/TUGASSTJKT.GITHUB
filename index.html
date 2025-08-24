@@ -342,9 +342,34 @@
 
     createApp({
       setup() {
-        // Users data with corrected admin username and password
+        // Users data with full list including admin and members
         const users = reactive([
-          { username: 'vindi_aldiano', password: 'Admin1234', role: 'admin' },
+          { username: 'Vindi Aldiano. M', password: 'Admin1TJKT', role: 'admin' },
+          { username: 'ananda', password: 'MemberTKJ', role: 'member' },
+          { username: 'anca', password: 'MemberTKJ', role: 'member' },
+          { username: 'anggit', password: 'MemberTKJ', role: 'member' },
+          { username: 'aisyah', password: 'MemberTKJ', role: 'member' },
+          { username: 'arya', password: 'MemberTKJ', role: 'member' },
+          { username: 'divta', password: 'MemberTKJ', role: 'member' },
+          { username: 'gita', password: 'MemberTKJ', role: 'member' },
+          { username: 'khawra', password: 'MemberTKJ', role: 'member' },
+          { username: 'hesti', password: 'MemberTKJ', role: 'member' },
+          { username: 'ismail', password: 'MemberTKJ', role: 'member' },
+          { username: 'nadya', password: 'MemberTKJ', role: 'member' },
+          { username: 'hasnita', password: 'MemberTKJ', role: 'member' },
+          { username: 'friti', password: 'MemberTKJ', role: 'member' },
+          { username: 'ramdan', password: 'MemberTKJ', role: 'member' },
+          { username: 'rani', password: 'MemberTKJ', role: 'member' },
+          { username: 'raya', password: 'MemberTKJ', role: 'member' },
+          { username: 'syuhfi', password: 'MemberTKJ', role: 'member' },
+          { username: 'zahraitun', password: 'MemberTKJ', role: 'member' },
+          { username: 'sari', password: 'MemberTKJ', role: 'member' },
+          { username: 'siska', password: 'MemberTKJ', role: 'member' },
+          { username: 'andita', password: 'MemberTKJ', role: 'member' },
+          { username: 'kharina', password: 'MemberTKJ', role: 'member' },
+          { username: 'salzabila', password: 'MemberTKJ', role: 'member' },
+          { username: 'rajib', password: 'MemberTKJ', role: 'member' },
+          { username: 'rezki', password: 'MemberTKJ', role: 'member' },
         ]);
 
         const authMode = ref('login'); // 'login' or 'register'
@@ -379,7 +404,7 @@
 
         const selectedMemberToPromote = ref('');
         const extendDeadlineDate = ref('');
-        const usersList = reactive([]);
+        const usersList = reactive([...users]); // Initialize usersList with users
 
         const isAdmin = computed(() => currentUser.role === 'admin');
 
@@ -390,6 +415,13 @@
         const minExtendDate = computed(() => {
           if (selectedTaskIndex.value === null) return new Date().toISOString().split('T')[0];
           const currentDeadlineStr = tasks[selectedTaskIndex.value].deadline;
+          if (/^\d{4}-\d{2}-\d{2}$/.test(currentDeadlineStr)) {
+            const date = new Date(currentDeadlineStr);
+            date.setDate(date.getDate() + 1);
+            const isoDate = date.toISOString().split('T')[0];
+            const today = new Date().toISOString().split('T')[0];
+            return isoDate > today ? isoDate : today;
+          }
           const parts = currentDeadlineStr.split(' ');
           if (parts.length !== 3) return new Date().toISOString().split('T')[0];
           const monthNames = {
@@ -411,7 +443,8 @@
           extendDeadlineDate.value = '';
         });
 
-        const API_BASE_URL = 'https://your-vercel-api-url.vercel.app/api';
+        // IMPORTANT: Replace this with your actual backend API URL
+        const API_BASE_URL = 'https://api.tugas-xi-tjkt.example.com';
 
         async function login() {
           loginError.value = '';
@@ -420,6 +453,21 @@
           loading.value = true;
           const usernameInput = loginForm.username.trim();
           const passwordInput = loginForm.password;
+
+          // Local authentication fallback if API is unreachable
+          const localUser = users.find(u => u.username.toLowerCase() === usernameInput.toLowerCase() && u.password === passwordInput);
+          if (localUser) {
+            currentUser.username = localUser.username;
+            currentUser.role = localUser.role;
+            isLoggedIn.value = true;
+            loginForm.username = '';
+            loginForm.password = '';
+            loading.value = false;
+            selectedTaskIndex.value = null;
+            tasks.splice(0, tasks.length); // Clear tasks (no backend)
+            usersList.splice(0, usersList.length, ...users);
+            return;
+          }
 
           try {
             const res = await fetch(`${API_BASE_URL}/auth/login`, {
@@ -447,7 +495,7 @@
             selectedTaskIndex.value = null;
           } catch (error) {
             console.error('Error during login:', error);
-            loginError.value = 'Gagal terhubung ke server.';
+            loginError.value = 'Gagal terhubung ke server dan user tidak ditemukan secara lokal.';
           } finally {
             loading.value = false;
           }
@@ -465,6 +513,12 @@
           }
           if (registerForm.password.length < 6) {
             registerError.value = 'Password minimal 6 karakter.';
+            loading.value = false;
+            return;
+          }
+          // Check if username already exists locally
+          if (users.find(u => u.username.toLowerCase() === registerForm.username.trim().toLowerCase())) {
+            registerError.value = 'Username sudah digunakan.';
             loading.value = false;
             return;
           }
@@ -517,7 +571,7 @@
           selectedMemberToPromote.value = '';
           extendDeadlineDate.value = '';
           tasks.splice(0, tasks.length);
-          usersList.splice(0, usersList.length);
+          usersList.splice(0, usersList.length, ...users);
         }
 
         async function fetchTasks() {
